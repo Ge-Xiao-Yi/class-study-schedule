@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env*
+!.env.example
+next-env.d.ts
+test-results/
+playwright-report/
+
+/public/ocr/
+
+# Local QA evidence contains machine paths and is not needed to deploy.
+/docs/qa-2026-09-27/
+/docs/production-evidence/
