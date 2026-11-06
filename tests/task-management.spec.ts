@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -373,7 +374,7 @@ test("手机可新增任务、打卡并滚动表单完成范围确认", async ({
   ).toBe(true);
 });
 
-test("彩色任务刷新后保留，手机打印整周彩色 PDF", async ({ page }) => {
+test("彩色任务刷新后保留，手机导出整周彩色 PNG", async ({ page }) => {
   await page.getByRole("button", { name: "新增任务", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("任务名称", { exact: true }).fill("准备组会");
@@ -387,13 +388,29 @@ test("彩色任务刷新后保留，手机打印整周彩色 PDF", async ({ page
     .first();
   await expect(row).toHaveCSS("background-color", "rgb(255, 244, 230)");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ media: "print" });
-  await expect(page.getByRole("columnheader")).toHaveCount(8);
-  await expect(row).toBeVisible();
-  await expect(row).toHaveCSS("background-color", "rgb(255, 244, 230)");
-  const pdf = await page.pdf({
-    preferCSSPageSize: true,
-    printBackground: true,
-  });
-  expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+  await expect(page.getByRole("button", { name: "导出彩色 PDF" })).toHaveCount(
+    0,
+  );
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "导出彩色周计划" }).click();
+  const file = await waiting;
+  expect(file.suggestedFilename()).toBe("周计划 2026-09-21 至 2026-09-27.png");
+  const bytes = await readFile((await file.path())!);
+  expect(bytes.subarray(1, 4).toString()).toBe("PNG");
+  const colored = await page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = "data:image/png;base64," + data;
+    await image.decode();
+    const c = document.createElement("canvas");
+    c.width = image.width;
+    c.height = image.height;
+    const ctx = c.getContext("2d")!;
+    ctx.drawImage(image, 0, 0);
+    const rgba = ctx.getImageData(0, 0, c.width, c.height).data;
+    for (let i = 0; i < rgba.length; i += 4)
+      if (rgba[i] === 255 && rgba[i + 1] === 244 && rgba[i + 2] === 230)
+        return true;
+    return false;
+  }, bytes.toString("base64"));
+  expect(colored).toBe(true);
 });

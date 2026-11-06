@@ -61,35 +61,45 @@ export function ScheduleGrid({
     setError("");
     try {
       const { saveWeekImage } = await import("@/lib/week-image");
+      const courseBlock = (o: CourseOccurrence) => ({
+        color: o.course.color,
+        text: [
+          "有课 · " + o.course.name,
+          o.course.location,
+          o.course.sectionText,
+          o.course.startTime + "–" + o.course.endTime,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      });
       const rows = timePeriods.map((p) => [
-        p.label + "\n" + p.time,
+        [{ text: p.label + "\n" + p.time }],
         ...days.map((d) => {
           const items = slotItems(occurrences, tasks, d.date, p.id, timeSlots);
-          const lines = items.map((i) =>
-            i.kind === "course"
-              ? [
-                  "有课 · " + i.occurrence.course.name,
-                  i.occurrence.course.location,
-                  i.occurrence.course.sectionText,
-                  i.occurrence.course.startTime +
-                    "–" +
-                    i.occurrence.course.endTime,
-                ]
-                  .filter(Boolean)
-                  .join("\n")
-              : (i.task.status === "done" ? "☑ " : "☐ ") +
-                i.task.fields.name +
-                " " +
-                [i.task.fields.startTime, i.task.fields.endTime]
-                  .filter(Boolean)
-                  .join("–") +
-                (i.task.fields.estimatedMinutes
-                  ? " · " + i.task.fields.estimatedMinutes + "分钟"
-                  : ""),
-          );
-          if (!items.some((i) => i.kind === "course"))
-            lines.unshift("自由时间");
-          return lines.join("\n");
+          return [
+            ...(items.some((i) => i.kind === "course")
+              ? []
+              : [{ text: "自由时间" }]),
+            ...items.map((i) =>
+              i.kind === "course"
+                ? courseBlock(i.occurrence)
+                : {
+                    color: i.task.fields.color,
+                    text: [
+                      (i.task.status === "done" ? "☑ " : "☐ ") +
+                        i.task.fields.name,
+                      [i.task.fields.startTime, i.task.fields.endTime]
+                        .filter(Boolean)
+                        .join("–"),
+                      i.task.fields.estimatedMinutes
+                        ? i.task.fields.estimatedMinutes + " 分钟"
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join("\n"),
+                  },
+            ),
+          ];
         }),
       ]);
       const extra = days.map((d) =>
@@ -100,13 +110,10 @@ export function ScheduleGrid({
               o.date === d.date &&
               !occurrencePeriods(o.course, timeSlots).length,
           )
-          .map(
-            (o) =>
-              o.course.name + " " + o.course.startTime + "–" + o.course.endTime,
-          )
-          .join("\n"),
+          .map(courseBlock),
       );
-      if (extra.some(Boolean)) rows.push(["时段外课程", ...extra]);
+      if (extra.some((items) => items.length))
+        rows.push([[{ text: "时段外课程" }], ...extra]);
       await saveWeekImage(
         "周计划 " + days[0].date + " 至 " + days[6].date,
         ["时间", ...days.map((d) => d.label + " (" + d.date.slice(5) + ")")],
@@ -237,10 +244,7 @@ export function ScheduleGrid({
           </button>
         </div>
         <button className="secondary-button" disabled={busy} onClick={download}>
-          {busy ? "正在导出…" : "导出周计划 PNG"}
-        </button>
-        <button className="secondary-button" onClick={() => window.print()}>
-          导出彩色 PDF
+          {busy ? "正在导出…" : "导出彩色周计划"}
         </button>
         {error && <span role="alert">{error}</span>}
         <p className="text-[11px] leading-6 text-slate-500">

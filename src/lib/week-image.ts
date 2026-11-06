@@ -1,7 +1,13 @@
+import { courseColors } from "@/domain/courses";
+import type { CourseColor } from "@/types/course";
+interface Block {
+  text: string;
+  color?: CourseColor | null;
+}
 export function saveWeekImage(
   title: string,
   headings: string[],
-  rows: string[][],
+  rows: Block[][][],
 ) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -23,11 +29,22 @@ export function saveWeekImage(
       return [...lines, line];
     });
   }
-  const grid = [headings, ...rows].map((row) =>
-    row.map((v, i) => wrap(v, widths[i] - 32)),
+  const grid = [headings.map((text) => [{ text }] as Block[]), ...rows].map(
+    (row) =>
+      row.map((cell, i) =>
+        cell.map((block) => ({
+          ...block,
+          lines: wrap(block.text, widths[i] - 44),
+        })),
+      ),
   );
   const heights = grid.map(
-    (row) => Math.max(...row.map((lines) => lines.length)) * 26 + 34,
+    (row) =>
+      Math.max(
+        ...row.map((cell) =>
+          cell.reduce((n, b) => n + b.lines.length * 26 + 16, 0),
+        ),
+      ) + 24,
   );
   canvas.width = widths.reduce((a, b) => a + b, 0) + 10;
   canvas.height = heights.reduce((a, b) => a + b, 0) + 76;
@@ -45,10 +62,22 @@ export function saveWeekImage(
       ctx.roundRect(x, y, widths[i] - 8, heights[r] - 8, 8);
       ctx.fill();
       ctx.font = r === 0 ? "bold " + font : font;
-      lines.forEach((line, j) => {
-        ctx.fillStyle = line.startsWith("有课") ? "#136d94" : "#334155";
-        ctx.fillText(line, x + 12, y + 28 + j * 26);
-      });
+      let top = y + 8;
+      for (const block of lines) {
+        const h = block.lines.length * 26 + 10;
+        const palette = block.color && courseColors[block.color];
+        if (palette) {
+          ctx.fillStyle = palette.background;
+          ctx.fillRect(x + 6, top, widths[i] - 20, h);
+          ctx.fillStyle = palette.text;
+          ctx.fillRect(x + 6, top, 3, h);
+        }
+        ctx.fillStyle = palette ? palette.text : "#334155";
+        block.lines.forEach((line, j) =>
+          ctx.fillText(line, x + 15, top + 22 + j * 26),
+        );
+        top += h + 6;
+      }
       x += widths[i];
     });
     y += heights[r];
