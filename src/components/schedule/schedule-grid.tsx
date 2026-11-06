@@ -54,6 +54,70 @@ export function ScheduleGrid({
     weekday: (index + 1) as Weekday,
   }));
   const selected = days[selectedDay - 1];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function download() {
+    setBusy(true);
+    setError("");
+    try {
+      const { saveWeekImage } = await import("@/lib/week-image");
+      const rows = timePeriods.map((p) => [
+        p.label + "\n" + p.time,
+        ...days.map((d) => {
+          const items = slotItems(occurrences, tasks, d.date, p.id, timeSlots);
+          const lines = items.map((i) =>
+            i.kind === "course"
+              ? [
+                  "有课 · " + i.occurrence.course.name,
+                  i.occurrence.course.location,
+                  i.occurrence.course.sectionText,
+                  i.occurrence.course.startTime +
+                    "–" +
+                    i.occurrence.course.endTime,
+                ]
+                  .filter(Boolean)
+                  .join("\n")
+              : (i.task.status === "done" ? "☑ " : "☐ ") +
+                i.task.fields.name +
+                " " +
+                [i.task.fields.startTime, i.task.fields.endTime]
+                  .filter(Boolean)
+                  .join("–") +
+                (i.task.fields.estimatedMinutes
+                  ? " · " + i.task.fields.estimatedMinutes + "分钟"
+                  : ""),
+          );
+          if (!items.some((i) => i.kind === "course"))
+            lines.unshift("自由时间");
+          return lines.join("\n");
+        }),
+      ]);
+      const extra = days.map((d) =>
+        occurrences
+          .filter(
+            (o) =>
+              !o.cancelled &&
+              o.date === d.date &&
+              !occurrencePeriods(o.course, timeSlots).length,
+          )
+          .map(
+            (o) =>
+              o.course.name + " " + o.course.startTime + "–" + o.course.endTime,
+          )
+          .join("\n"),
+      );
+      if (extra.some(Boolean)) rows.push(["时段外课程", ...extra]);
+      await saveWeekImage(
+        "周计划 " + days[0].date + " 至 " + days[6].date,
+        ["时间", ...days.map((d) => d.label + " (" + d.date.slice(5) + ")")],
+        rows,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "图片导出失败");
+    } finally {
+      setBusy(false);
+    }
+  }
   function outside(date?: string) {
     const items = occurrences.filter(
       (item) =>
@@ -91,6 +155,20 @@ export function ScheduleGrid({
     const items = slotItems(occurrences, tasks, day.date, period, timeSlots);
     return (
       <div className="flex min-w-0 flex-col gap-2">
+        {items.some((i) => i.kind === "course") ? (
+          <span className="slot-course-tag">有课</span>
+        ) : (
+          <span className="slot-free">☕ 自由时间</span>
+        )}
+        {items.some((i) => i.kind === "task") && (
+          <small className="text-right text-slate-500">
+            {
+              items.filter((i) => i.kind === "task" && i.task.status === "done")
+                .length
+            }
+            /{items.filter((i) => i.kind === "task").length}
+          </small>
+        )}
         {items.map((item) =>
           item.kind === "course" ? (
             <CourseCard
@@ -158,6 +236,10 @@ export function ScheduleGrid({
             单日视图
           </button>
         </div>
+        <button className="secondary-button" disabled={busy} onClick={download}>
+          {busy ? "正在导出…" : "导出周计划 PNG"}
+        </button>
+        {error && <span role="alert">{error}</span>}
         <p className="text-[11px] leading-6 text-slate-500">
           {editing
             ? "点击卡片编辑 · 课程与任务可独立添加"
@@ -237,7 +319,7 @@ export function ScheduleGrid({
         {outside(selected.date)}
       </div>
       <div className={singleDay ? "hidden" : "hidden lg:block"}>
-        <table className="w-full table-fixed border-collapse">
+        <table className="planner-table w-full table-fixed">
           <caption className="sr-only">
             {weekLabel(week)}课程和学习计划，按星期及上午、下午、晚上排列
           </caption>
