@@ -4,6 +4,7 @@ export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskScope = "single" | "all";
 
 export interface TaskFields {
+  color?: import("./course").CourseColor | null;
   name: string;
   startDate: string;
   period: PeriodId;

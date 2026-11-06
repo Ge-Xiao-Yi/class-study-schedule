@@ -4,7 +4,7 @@ import {
   taskRepeatLabels,
   taskStatuses,
 } from "@/domain/tasks";
-import { timePeriods } from "@/domain/courses";
+import { courseColors, timePeriods } from "@/domain/courses";
 import { getTimePeriods } from "@/domain/time-slots";
 import type { TimeSlot } from "@/types/archive";
 
@@ -38,6 +38,22 @@ export function TaskFieldsForm({
           value={draft.name}
           onChange={(event) => update("name", event.target.value)}
         />
+      </label>
+      <label className="field-label">
+        任务颜色
+        <select
+          value={draft.color ?? ""}
+          onChange={(event) =>
+            update("color", (event.target.value || null) as TaskDraft["color"])
+          }
+        >
+          <option value="">默认（白色）</option>
+          {Object.entries(courseColors).map(([key, c]) => (
+            <option key={key} value={key}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="field-label">
         任务日期

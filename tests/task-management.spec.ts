@@ -372,3 +372,28 @@ test("手机可新增任务、打卡并滚动表单完成范围确认", async ({
     ),
   ).toBe(true);
 });
+
+test("彩色任务刷新后保留，手机打印整周彩色 PDF", async ({ page }) => {
+  await page.getByRole("button", { name: "新增任务", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("任务名称", { exact: true }).fill("准备组会");
+  await dialog.getByLabel("任务颜色").selectOption("orange");
+  await dialog.getByRole("button", { name: "保存任务", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await page.reload();
+  const row = page
+    .getByRole("table")
+    .getByRole("article", { name: /任务：准备组会/ })
+    .first();
+  await expect(row).toHaveCSS("background-color", "rgb(255, 244, 230)");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByRole("columnheader")).toHaveCount(8);
+  await expect(row).toBeVisible();
+  await expect(row).toHaveCSS("background-color", "rgb(255, 244, 230)");
+  const pdf = await page.pdf({
+    preferCSSPageSize: true,
+    printBackground: true,
+  });
+  expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+});

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { courseColors } from "@/domain/courses";
 import type { TaskStatus, TaskView } from "@/types/task";
 import { taskRepeatLabels, taskStatuses } from "@/domain/tasks";
 
@@ -33,10 +34,21 @@ export function TaskCard({
     }
   }
   const { fields } = task;
+  const color = fields.color && courseColors[fields.color];
   return (
     <article
       aria-label={`任务：${fields.name} · ${task.date}`}
       data-task-id={task.taskId}
+      style={
+        color
+          ? {
+              backgroundColor: color.background,
+              borderLeft: "3px solid " + color.text,
+              borderRadius: 6,
+              color: color.text,
+            }
+          : undefined
+      }
       data-task-date={task.originalDate}
       className="schedule-card border-slate-200 bg-white text-slate-600"
     >

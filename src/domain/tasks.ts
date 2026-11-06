@@ -8,7 +8,7 @@ import type {
 } from "../types/task";
 import type { ScheduleSnapshot } from "../types/course";
 import { calendarDaysBetween, parseDate, weekDates } from "./dates";
-import { timePeriods } from "./courses";
+import { courseColors, timePeriods } from "./courses";
 import { getTimePeriods } from "./time-slots";
 import type { TimeSlot } from "../types/archive";
 
@@ -29,6 +29,7 @@ export function normalizeTaskFields(
 ): TaskFields {
   return {
     name: fields.name.trim(),
+    color: fields.color ?? null,
     startDate: fields.startDate,
     // A specified start time is authoritative. Crossing periods does not split tasks.
     period: fields.startTime
@@ -45,6 +46,8 @@ export function normalizeTaskFields(
 }
 
 export function validateTaskFields(fields: TaskFields): void {
+  if (fields.color != null && !Object.hasOwn(courseColors, fields.color))
+    throw new Error("请选择有效的任务颜色。");
   if (!fields.name.trim() || fields.name.length > 80)
     throw new Error("任务名称必填，且不超过 80 个字。");
   parseDate(fields.startDate);

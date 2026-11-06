@@ -239,6 +239,9 @@ export function ScheduleGrid({
         <button className="secondary-button" disabled={busy} onClick={download}>
           {busy ? "正在导出…" : "导出周计划 PNG"}
         </button>
+        <button className="secondary-button" onClick={() => window.print()}>
+          导出彩色 PDF
+        </button>
         {error && <span role="alert">{error}</span>}
         <p className="text-[11px] leading-6 text-slate-500">
           {editing
@@ -318,7 +321,10 @@ export function ScheduleGrid({
       <div className={singleDay ? "" : "lg:hidden"}>
         {outside(selected.date)}
       </div>
-      <div className={singleDay ? "hidden" : "hidden lg:block"}>
+      <div
+        className={"print-week " + (singleDay ? "hidden" : "hidden lg:block")}
+      >
+        <h2 className="hidden print:block">周计划 · {weekLabel(week)}</h2>
         <table className="planner-table w-full table-fixed">
           <caption className="sr-only">
             {weekLabel(week)}课程和学习计划，按星期及上午、下午、晚上排列

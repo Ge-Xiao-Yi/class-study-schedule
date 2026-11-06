@@ -131,3 +131,57 @@ button:not(:disabled) {
   border-radius: 0;
   padding: 4px;
 }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 7mm;
+  }
+  body *:not(:has(.print-week)):not(.print-week):not(.print-week *) {
+    display: none !important;
+  }
+  body,
+  body *:has(.print-week) {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .print-week {
+    display: block !important;
+  }
+  .print-week,
+  .print-week * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-week h2 {
+    margin: 0 0 3mm;
+  }
+  .print-week .planner-table {
+    border-spacing: 3px;
+  }
+  .print-week .planner-table td {
+    padding: 4px;
+  }
+  .print-week .planner-table col:first-child {
+    width: 16mm;
+  }
+  .print-week .schedule-card {
+    padding: 4px;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .print-week .schedule-card * {
+    font-size: 9pt;
+    line-height: 1.25;
+  }
+  .print-week thead {
+    display: table-header-group;
+  }
+  .print-week td div:has(> button[aria-label$="添加课程"]) {
+    display: none;
+  }
+}

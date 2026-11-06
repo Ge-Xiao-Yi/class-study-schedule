@@ -39,6 +39,7 @@ const courseFields = z.strictObject({
 });
 const taskFields = z.strictObject({
   name,
+  color: courseFields.shape.color.nullable().optional(),
   startDate: date,
   period: z.enum(["morning", "afternoon", "evening"]),
   startTime: time.nullable(),
